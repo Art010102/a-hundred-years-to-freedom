@@ -10,7 +10,7 @@ Offline prison errand game. Ellis Kane, inmate 104, works a looping list of jobs
 
 ## Android Studio
 
-Open the `android` folder (not the repo root) in Android Studio.
+Open this repository folder in Android Studio and let Gradle sync. The Android project is at the repo root, so Studio should pick up `settings.gradle` and download Gradle by itself. You do not need `npm install` just to run the game.
 
 Build a release Android App Bundle: **Build → Generate Signed Bundle / APK → Android App Bundle**.
 
