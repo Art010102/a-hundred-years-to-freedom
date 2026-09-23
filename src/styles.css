@@ -248,7 +248,7 @@
 .quest-card {
   align-self: flex-start;
   width: min(100%, clamp(12.5rem, 48vw, 24rem));
-  margin-top: 0.1rem;
+  margin-top: 0;
   padding: clamp(0.22rem, 0.7vh, 0.45rem) clamp(0.4rem, 1vw, 0.7rem);
   background-color: rgba(18, 22, 26, 0.46);
   background-image:

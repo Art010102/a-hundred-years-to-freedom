@@ -121,11 +121,35 @@ export function PrisonApp() {
 
       <div className="menu-face pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-1 px-3 pt-2">
         <div className="flex items-start justify-between gap-3">
-          <div className="pointer-events-auto prison-steel px-4 py-2">
-            <p className="text-xs font-medium tracking-widest text-amber uppercase">{ui("yearsLeft")}</p>
-            <p key={hud.pulse} className="hud-years year-pop font-display leading-none text-cream">
-              {hud.years}
-            </p>
+          <div className="flex min-w-0 flex-col items-start gap-1.5">
+            <div className="pointer-events-auto prison-steel px-4 py-2">
+              <p className="text-xs font-medium tracking-widest text-amber uppercase">{ui("yearsLeft")}</p>
+              <p key={hud.pulse} className="hud-years year-pop font-display leading-none text-cream">
+                {hud.years}
+              </p>
+            </div>
+            {hud.mode === "play" && !dialogue ? (
+              <div className="quest-card pointer-events-none flex items-center gap-2">
+                <div
+                  ref={arrowRef}
+                  className="quest-arrow flex shrink-0 items-center justify-center rounded-full bg-ink text-amber"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="quest-title truncate font-medium tracking-widest text-rust uppercase">{hud.title}</p>
+                    <span ref={distRef} className="quest-title shrink-0 text-muted" />
+                  </div>
+                  <p className="quest-body text-cream">{hud.objective}</p>
+                  {hud.usingLabel ? (
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-ink">
+                      <div ref={barRef} className="h-full w-0 bg-rust" />
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
           </div>
           <div className="flex flex-col items-end gap-2">
             <div className="prison-steel px-3 py-2 text-right">
@@ -145,29 +169,6 @@ export function PrisonApp() {
             ) : null}
           </div>
         </div>
-
-        {hud.mode === "play" && !dialogue ? (
-          <div className="quest-card pointer-events-none flex items-center gap-2">
-            <div
-              ref={arrowRef}
-              className="quest-arrow flex shrink-0 items-center justify-center rounded-full bg-ink text-amber"
-            >
-              <ChevronUp className="h-4 w-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="quest-title truncate font-medium tracking-widest text-rust uppercase">{hud.title}</p>
-                <span ref={distRef} className="quest-title shrink-0 text-muted" />
-              </div>
-              <p className="quest-body text-cream">{hud.objective}</p>
-              {hud.usingLabel ? (
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-ink">
-                  <div ref={barRef} className="h-full w-0 bg-rust" />
-                </div>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
 
         {hud.toast ? (
           <p className="toast-in pointer-events-none mx-auto rounded-full bg-ink px-4 py-2 text-sm text-amber">{hud.toast}</p>
