@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Yard Stencil";
+  src: url("/fonts/stencil.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Dossier";
+  src: url("/fonts/dossier.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   --color-ink: #1c1915;
   --color-panel: #2a241c;
@@ -8,8 +24,9 @@
   --color-rust: #c65a2e;
   --color-amber: #e6b15a;
   --color-line: #4a4034;
-  --font-display: "Fraunces", "Times New Roman", serif;
-  --font-sans: "Outfit", "Verdana", sans-serif;
+  --font-display: "Yard Stencil", "Noto Sans JP", "Noto Sans SC", "Noto Sans Devanagari", serif;
+  --font-menu: "Dossier", "Noto Sans Devanagari", "Noto Sans JP", "Noto Sans SC", sans-serif;
+  --font-sans: "Outfit", "Noto Sans Devanagari", "Noto Sans JP", "Noto Sans SC", "Verdana", sans-serif;
   --radius-hud: 1rem;
 }
 
@@ -55,9 +72,69 @@
 }
 
 .title-screen {
+  overflow-y: auto;
   background:
-    linear-gradient(180deg, rgba(18, 14, 10, 0.15), rgba(18, 14, 10, 0.55)),
+    linear-gradient(180deg, rgba(18, 14, 10, 0.62) 0%, rgba(18, 14, 10, 0.08) 34%, rgba(18, 14, 10, 0.12) 58%, rgba(18, 14, 10, 0.78) 100%),
     url("/menu-bg.jpg") center / cover no-repeat;
+}
+
+.menu-shadow {
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.78);
+}
+
+.menu-face,
+.prison-btn,
+.prison-select {
+  font-family: var(--font-menu);
+}
+
+.title-word {
+  font-family: var(--font-display);
+  font-size: clamp(2.15rem, 8vh, 4.4rem);
+  line-height: 0.92;
+  letter-spacing: 0.02em;
+}
+
+.pad-dock {
+  left: max(0.75rem, env(safe-area-inset-left));
+  bottom: max(0.6rem, env(safe-area-inset-bottom));
+}
+
+.act-dock {
+  right: max(0.75rem, env(safe-area-inset-right));
+  bottom: max(0.6rem, env(safe-area-inset-bottom));
+}
+
+.wasd-hint {
+  display: none;
+}
+
+@media (pointer: fine) and (min-width: 900px) {
+  .wasd-hint {
+    display: block;
+  }
+}
+
+.dialogue-sheet,
+.dialogue-sheet h2,
+.dialogue-sheet p {
+  font-family: var(--font-sans);
+}
+
+.prison-range {
+  width: 100%;
+  height: 1.75rem;
+  accent-color: var(--color-rust);
+}
+
+.prison-select {
+  width: 100%;
+  min-height: 3rem;
+  border: 2px solid var(--color-ink);
+  background-color: var(--color-panel);
+  color: var(--color-cream);
+  padding: 0 0.75rem;
+  font: inherit;
 }
 
 .prison-paper {

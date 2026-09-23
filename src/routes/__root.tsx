@@ -9,7 +9,7 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" },
       { title: APP_NAME },
       { name: "theme-color", content: "#1C1915" },
       { name: "description", content: "A Hundred Years to Freedom. Work the block. Officers shave years. The yard pays respect." },
@@ -23,7 +23,7 @@ export const Route = createRootRoute({
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,680&family=Outfit:wght@420;500;600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,680&family=Noto+Sans+Devanagari:wght@500;600&family=Noto+Sans+JP:wght@500;600&family=Noto+Sans+SC:wght@500;600&family=Outfit:wght@420;500;600&display=swap",
       },
     ],
   }),

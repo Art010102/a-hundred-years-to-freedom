@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState, type PointerEvent, type ReactNode, type RefObject } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Pause, RotateCcw } from "lucide-react";
-import { PrisonSim, type Hud, type Live } from "./sim";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type ReactNode, type RefObject } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Pause } from "lucide-react";
+import { PrisonSim, saveExists, type Hud, type Live } from "./sim";
+import { nearLabel, t, verbLabel, type UiKey } from "./i18n";
+import { LANGS, bootSettings, saveSettings, type Lang, type Settings } from "./settings";
 
 const INITIAL: Hud = {
   mode: "title",
@@ -35,14 +37,43 @@ function holdProps(sim: RefObject<PrisonSim | null>, dir: "up" | "down" | "left"
   };
 }
 
+const LANG_NAMES: Record<Lang, string> = {
+  en: "English",
+  es: "Español",
+  de: "Deutsch",
+  hi: "हिन्दी",
+  ja: "日本語",
+  zh: "中文",
+};
+
+function lockLandscape() {
+  const touch = window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+  if (!touch) return;
+  const orientation = screen.orientation as ScreenOrientation & { lock?: (mode: string) => Promise<void> };
+  orientation.lock?.("landscape")?.catch(() => {});
+}
+
 export function PrisonApp() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const simRef = useRef<PrisonSim | null>(null);
   const arrowRef = useRef<HTMLDivElement>(null);
   const distRef = useRef<HTMLSpanElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
+  const modeRef = useRef<Hud["mode"]>("title");
   const [hud, setHud] = useState<Hud>(INITIAL);
   const [error, setError] = useState<string | null>(null);
+  const [settings, setSettings] = useState<Settings>({ volume: 80, lang: "en" });
+  const [saved, setSaved] = useState(false);
+  const [panel, setPanel] = useState<"main" | "options" | "confirm">("main");
+  const lang = settings.lang;
+
+  useLayoutEffect(() => {
+    const next = bootSettings();
+    setSettings(next);
+    setSaved(saveExists());
+    document.documentElement.lang = next.lang;
+    lockLandscape();
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -50,7 +81,14 @@ export function PrisonApp() {
     try {
       const sim = new PrisonSim(
         canvas,
-        (next) => setHud(next),
+        (next) => {
+          if (next.mode === "title" && modeRef.current === "play") {
+            setSaved(saveExists());
+            setPanel("main");
+          }
+          modeRef.current = next.mode;
+          setHud(next);
+        },
         (live: Live) => {
           if (arrowRef.current) {
             if (live.angle === null) arrowRef.current.style.visibility = "hidden";
@@ -74,9 +112,18 @@ export function PrisonApp() {
     }
   }, []);
 
+  function writeSettings(next: Settings) {
+    setSettings(next);
+    saveSettings(next);
+    simRef.current?.setVolume(next.volume);
+    simRef.current?.refresh();
+    document.documentElement.lang = next.lang;
+  }
+
   const dialogue = hud.dialogue;
   const line = dialogue ? dialogue.lines[dialogue.index] : "";
   const lastLine = !!dialogue && dialogue.index === dialogue.lines.length - 1;
+  const ui = (key: UiKey) => t(key, lang);
 
   return (
     <main className="fixed inset-0 touch-none overflow-hidden bg-ink text-cream select-none">
@@ -87,24 +134,24 @@ export function PrisonApp() {
         </div>
       ) : null}
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-2 p-3 pt-4">
+      <div className="menu-face pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-2 p-3 pt-4">
         <div className="flex items-start justify-between gap-3">
           <div className="pointer-events-auto prison-steel px-4 py-2">
-            <p className="text-xs font-medium tracking-widest text-amber uppercase">Years left</p>
+            <p className="text-xs font-medium tracking-widest text-amber uppercase">{ui("yearsLeft")}</p>
             <p key={hud.pulse} className="year-pop font-display text-5xl leading-none text-cream">
               {hud.years}
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
             <div className="prison-steel px-3 py-2 text-right">
-              <p className="text-xs font-medium tracking-widest text-amber uppercase">Respect</p>
+              <p className="text-xs font-medium tracking-widest text-amber uppercase">{ui("respect")}</p>
               <p className="font-display text-2xl leading-none text-cream">{hud.ledger}</p>
               <p className="mt-1 text-xs tracking-widest text-muted uppercase">{hud.zone}</p>
             </div>
             {hud.mode === "play" ? (
               <button
                 type="button"
-                aria-label="Pause"
+                aria-label={ui("pausedTitle")}
                 className="pointer-events-auto prison-steel flex h-11 w-11 items-center justify-center"
                 onClick={() => simRef.current?.togglePause()}
               >
@@ -141,12 +188,14 @@ export function PrisonApp() {
           <p className="toast-in pointer-events-none mx-auto rounded-full bg-ink px-4 py-2 text-sm text-amber">{hud.toast}</p>
         ) : null}
         {hud.item && hud.mode === "play" && !dialogue ? (
-          <p className="pointer-events-none prison-steel mx-auto px-3 py-1 text-sm text-cream">Carrying {hud.item}</p>
+          <p className="pointer-events-none prison-steel mx-auto px-3 py-1 text-sm text-cream">
+            {ui("carrying")} {hud.item}
+          </p>
         ) : null}
       </div>
 
       {dialogue ? (
-        <div className="absolute inset-x-0 bottom-0 z-20 p-3 pb-4">
+        <div className="dialogue-sheet absolute inset-x-0 bottom-0 z-20 p-3 pb-4">
           <div className="prison-paper p-4">
             <div className="flex items-start gap-3">
               {dialogue.portrait ? (
@@ -163,15 +212,15 @@ export function PrisonApp() {
             </div>
             <p className="mt-2 min-h-16 text-base leading-relaxed text-ink">{line}</p>
             <button type="button" className="prison-btn mt-3 min-h-12 w-full text-base" onClick={() => simRef.current?.advance()}>
-              {lastLine ? "Close" : "Next"}
+              {lastLine ? ui("close") : ui("next")}
             </button>
           </div>
         </div>
       ) : null}
 
       {hud.mode === "play" && !dialogue && !hud.paused ? (
-        <div className="absolute inset-x-0 bottom-0 z-10 flex items-end justify-between p-3 pb-4">
-          <div className="pointer-events-auto grid grid-cols-3 gap-1">
+        <>
+          <div className="pad-dock pointer-events-auto absolute z-10 grid grid-cols-3 gap-1">
             <span />
             <Pad sim={simRef} dir="up" label="Forward">
               <ChevronUp className="h-7 w-7" />
@@ -190,73 +239,141 @@ export function PrisonApp() {
             </Pad>
             <span />
           </div>
-          <div className="pointer-events-auto flex flex-col items-center gap-1">
-            {hud.near ? <span className="max-w-28 truncate rounded-full bg-ink px-2 py-1 text-xs text-cream">{hud.near}</span> : null}
+          <div className="act-dock pointer-events-auto absolute z-10 flex flex-col items-center gap-1">
+            {nearLabel(hud.near, lang) ? (
+              <span className="max-w-28 truncate rounded-full bg-ink px-2 py-1 text-xs text-cream">{nearLabel(hud.near, lang)}</span>
+            ) : null}
             <button
               type="button"
-              aria-label={hud.nearVerb ?? "Act"}
-              className="prison-btn flex h-20 w-20 items-center justify-center rounded-full text-sm"
+              aria-label={verbLabel(hud.nearVerb, lang)}
+              className="prison-btn flex h-20 w-20 items-center justify-center rounded-full px-1 text-center text-xs leading-tight"
               onPointerDown={(e) => {
                 e.preventDefault();
                 simRef.current?.queueAct();
               }}
             >
-              {hud.usingLabel ? "..." : (hud.nearVerb ?? "Act")}
+              {hud.usingLabel ? "..." : verbLabel(hud.nearVerb, lang)}
             </button>
           </div>
-        </div>
+        </>
       ) : null}
 
-      <p className="pointer-events-none absolute bottom-4 left-1/2 z-10 hidden -translate-x-1/2 rounded-full bg-panel px-3 py-1 text-xs text-cream md:block">
-        WASD move · E talk
+      <p className="wasd-hint pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-panel px-3 py-1 text-xs text-cream">
+        {ui("wasd")}
       </p>
 
       {hud.paused ? (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-ink/80 p-6">
+        <div className="menu-face absolute inset-0 z-30 flex items-center justify-center bg-ink/80 p-6">
           <div className="prison-paper w-full max-w-sm p-5">
-            <h2 className="font-display text-3xl text-ink">Count held</h2>
-            <p className="mt-2 text-base text-ink">The block stays where you left it. Years and respect are written down.</p>
+            <h2 className="font-display text-3xl text-ink">{ui("pausedTitle")}</h2>
+            <p className="mt-2 text-base leading-relaxed text-ink">{ui("pausedBody")}</p>
             <button type="button" className="prison-btn mt-4 min-h-12 w-full" onClick={() => simRef.current?.togglePause()}>
-              Resume
+              {ui("resume")}
             </button>
             <button type="button" className="prison-btn mt-2 min-h-12 w-full" onClick={() => simRef.current?.unstick()}>
-              Back to the block
+              {ui("unstick")}
             </button>
-            <button
-              type="button"
-              className="prison-btn mt-2 flex min-h-12 w-full items-center justify-center gap-2"
-              onClick={() => simRef.current?.reset()}
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reset the book
+            <button type="button" className="prison-btn mt-2 min-h-12 w-full" onClick={() => simRef.current?.toTitle()}>
+              {ui("mainMenu")}
             </button>
           </div>
         </div>
       ) : null}
 
       {hud.mode === "title" && !error ? (
-        <div className="title-screen absolute inset-0 z-30 flex items-end justify-center p-4 pb-8 sm:items-center">
-          <div className="prison-paper w-full max-w-md p-5">
-            <p className="stencil text-xs">Redpine Correctional</p>
-            <h1 className="mt-2 font-display text-4xl leading-none text-ink">A Hundred Years to Freedom</h1>
-            <p className="mt-3 text-base leading-relaxed text-ink">
-              Ellis Kane, inmate 104. A hundred years on the book. The list never ends. It just comes around again.
-            </p>
-            <p className="mt-2 text-base leading-relaxed text-ink">
-              An officer's job takes one year off and costs two respect. A yard job adds one year and pays two respect. Respect stops at 100.
-            </p>
-            <p className="mt-2 text-sm leading-relaxed text-ink">
-              Walk up to a cell door and press Open. It slides, then shuts itself after two seconds. Both sides.
-            </p>
-            <button type="button" className="prison-btn mt-5 min-h-12 w-full text-lg" onClick={() => simRef.current?.start()}>
-              Begin the count
-            </button>
-            <p className="mt-3 text-center text-xs text-ink">
-              Google Play · com.hundredyears.freedom
-              <br />
-              art010102.github.io/hundred-years-freedom
-            </p>
+        <div
+          className="title-screen menu-face absolute inset-0 z-30 flex items-center justify-center px-5 py-4"
+          onPointerDown={() => {
+            lockLandscape();
+            simRef.current?.wake();
+          }}
+        >
+          <div className="flex w-full max-w-lg flex-col items-center text-center">
+            <p className="menu-shadow text-xs font-semibold tracking-[0.22em] text-amber uppercase">{ui("kicker")}</p>
+            <h1 className="title-word menu-shadow mt-2 text-cream">{ui("gameTitle")}</h1>
+            {panel === "main" ? (
+              <p className="menu-shadow mt-3 max-w-md text-base leading-relaxed text-cream">{ui("blurb")}</p>
+            ) : null}
+            <div className="mt-5 w-full">
+            {panel === "options" ? (
+              <div className="prison-paper mx-auto w-full max-w-md p-4">
+                <label className="block text-sm font-semibold tracking-widest text-ink uppercase" htmlFor="volume">
+                  {ui("volume")}
+                </label>
+                <div className="mt-2 flex items-center gap-3">
+                  <input
+                    id="volume"
+                    className="prison-range"
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={settings.volume}
+                    onChange={(e) => writeSettings({ ...settings, volume: Number(e.target.value) })}
+                  />
+                  <span className="w-12 text-right font-display text-3xl leading-none text-ink">{settings.volume}</span>
+                </div>
+                <label className="mt-4 block text-sm font-semibold tracking-widest text-ink uppercase" htmlFor="language">
+                  {ui("language")}
+                </label>
+                <select
+                  id="language"
+                  className="prison-select mt-2"
+                  value={settings.lang}
+                  onChange={(e) => writeSettings({ ...settings, lang: e.target.value as Lang })}
+                >
+                  {LANGS.map((code) => (
+                    <option key={code} value={code}>
+                      {LANG_NAMES[code]}
+                    </option>
+                  ))}
+                </select>
+                <button type="button" className="prison-btn mt-4 min-h-12 w-full" onClick={() => setPanel("main")}>
+                  {ui("back")}
+                </button>
+              </div>
+            ) : (
+              <div className="mx-auto flex w-full max-w-md flex-col gap-2">
+                <button type="button" className="prison-btn min-h-12 text-lg" onClick={() => setPanel("confirm")}>
+                  {ui("newGame")}
+                </button>
+                <button
+                  type="button"
+                  className="prison-btn min-h-12 text-lg disabled:cursor-not-allowed disabled:opacity-40"
+                  disabled={!saved}
+                  onClick={() => simRef.current?.start()}
+                >
+                  {ui("continue")}
+                </button>
+                {!saved ? <p className="menu-shadow text-center text-sm text-cream">{ui("noSave")}</p> : null}
+                <button type="button" className="prison-btn min-h-12 text-lg" onClick={() => setPanel("options")}>
+                  {ui("options")}
+                </button>
+              </div>
+            )}
+            </div>
           </div>
+          {panel === "confirm" ? (
+            <div className="absolute inset-0 z-40 flex items-center justify-center bg-ink/75 p-5">
+              <div className="prison-paper w-full max-w-sm p-5">
+                <h2 className="font-display text-3xl leading-tight text-ink">{ui("confirmTitle")}</h2>
+                <p className="mt-2 text-base leading-relaxed text-ink">{ui("confirmBody")}</p>
+                <button
+                  type="button"
+                  className="prison-btn mt-4 min-h-12 w-full"
+                  onClick={() => {
+                    setPanel("main");
+                    setSaved(false);
+                    simRef.current?.newGame();
+                  }}
+                >
+                  {ui("yes")}
+                </button>
+                <button type="button" className="prison-btn mt-2 min-h-12 w-full" onClick={() => setPanel("main")}>
+                  {ui("no")}
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </main>

@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { zoneLabel, t, type UiKey } from "./i18n";
+import { bootSettings, getSettings } from "./settings";
 import { ERRANDS, LOOK_LINES, NPC, type Errand } from "./content";
 import { LOOKS, buildLevel, createCellDoors, syncDoor, SPOTS, zoneName, type AABB, type CellDoor } from "./level";
 import { PLAYER_LOOK, animateRig, createRig, npcSpawns, type Rig, type Spawn } from "./people";
@@ -66,9 +68,9 @@ declare global {
 const SAVE_KEY = "freedom-ledger-v2";
 const SPEED = 4.4;
 const RADIUS = 0.34;
-const OFF_X = 12;
-const OFF_Y = 19;
-const OFF_Z = 14;
+const OFF_X = 10;
+const OFF_Y = 19.5;
+const OFF_Z = 11.5;
 const CAM_F_LEN = Math.hypot(OFF_X, OFF_Z);
 const CAM_FX = -OFF_X / CAM_F_LEN;
 const CAM_FZ = -OFF_Z / CAM_F_LEN;
@@ -109,39 +111,259 @@ function loadDisk(): {
   }
 }
 
+function tr(key: UiKey, vars?: Record<string, string | number>) {
+  return t(key, getSettings().lang, vars);
+}
+
 class Sfx {
   private ctx: AudioContext | null = null;
+  private master: GainNode | null = null;
+  private music: GainNode | null = null;
+  private level = 0.8;
+  private bedMode: "off" | "menu" | "yard" = "off";
+  private stopBed: (() => void) | null = null;
+  private stepAcc = 0;
+  private stepFlip = false;
+
+  setVolume(percent: number) {
+    this.level = Math.max(0, Math.min(100, percent)) / 100;
+    if (this.master) this.master.gain.value = this.level;
+  }
+
   ensure() {
     if (!this.ctx) {
       const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new AC();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.level;
+      this.master.connect(this.ctx.destination);
+      this.music = this.ctx.createGain();
+      this.music.gain.value = 1;
+      this.music.connect(this.master);
     }
     if (this.ctx.state === "suspended") void this.ctx.resume();
   }
-  private tone(freq: number, dur: number, type: OscillatorType, gain: number, delay = 0) {
-    if (!this.ctx) return;
-    const t = this.ctx.currentTime + delay;
+
+  stop() {
+    this.stopBed?.();
+    this.stopBed = null;
+    this.bedMode = "off";
+    void this.ctx?.close();
+    this.ctx = null;
+    this.master = null;
+    this.music = null;
+  }
+
+  bed(mode: "off" | "menu" | "yard") {
+    this.ensure();
+    if (this.bedMode === mode) return;
+    this.stopBed?.();
+    this.stopBed = null;
+    this.bedMode = mode;
+    if (mode === "menu") this.stopBed = this.loop(48, 73.42, MENU_NOTES, true);
+    else if (mode === "yard") this.stopBed = this.loop(64, 55, YARD_NOTES, false);
+  }
+
+  foot(dt: number) {
+    if (!this.ctx || dt <= 0) {
+      this.stepAcc = 0;
+      return;
+    }
+    this.stepAcc += dt;
+    if (this.stepAcc < 0.46) return;
+    this.stepAcc = 0;
+    this.stepFlip = !this.stepFlip;
+    this.noise(0.05, this.stepFlip ? 210 : 280, 0.07);
+  }
+
+  talk() {
+    this.ensure();
+    this.voice(196, 0.1, 0.08);
+    this.voice(247, 0.13, 0.05, 0.05);
+  }
+
+  page() {
+    this.ensure();
+    this.noise(0.045, 1600, 0.028);
+  }
+
+  work() {
+    this.ensure();
+    this.noise(0.18, 480, 0.05);
+    this.voice(98, 0.12, 0.03);
+  }
+
+  door() {
+    this.ensure();
+    this.noise(0.2, 760, 0.045);
+    this.voice(164, 0.09, 0.03);
+  }
+
+  look() {
+    this.ensure();
+    this.noise(0.07, 1100, 0.03);
+  }
+
+  year() {
+    this.ensure();
+    this.voice(392, 0.16, 0.04);
+    this.voice(494, 0.22, 0.035, 0.1);
+  }
+
+  private voice(freq: number, dur: number, gain: number, delay = 0) {
+    if (!this.ctx || !this.master) return;
+    const t0 = this.ctx.currentTime + delay;
     const o = this.ctx.createOscillator();
     const g = this.ctx.createGain();
-    o.type = type;
+    const f = this.ctx.createBiquadFilter();
+    f.type = "lowpass";
+    f.frequency.value = 720;
+    o.type = "sine";
     o.frequency.value = freq;
-    g.gain.setValueAtTime(gain, t);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(f);
+    f.connect(g);
+    g.connect(this.master);
+    o.start(t0);
+    o.stop(t0 + dur + 0.03);
+  }
+
+  private noise(dur: number, freq: number, gain: number) {
+    if (!this.ctx || !this.master) return;
+    const frames = Math.max(1, Math.floor(this.ctx.sampleRate * dur));
+    const buf = this.ctx.createBuffer(1, frames, this.ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < frames; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / frames);
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = freq;
+    const g = this.ctx.createGain();
+    const t0 = this.ctx.currentTime;
+    g.gain.setValueAtTime(gain, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(this.master);
+    src.start(t0);
+  }
+
+  private loop(bpm: number, drone: number, notes: BedNote[], menu: boolean) {
+    const ctx = this.ctx;
+    const out = this.music;
+    if (!ctx || !out) return () => {};
+    let killed = false;
+    const beat = 60 / bpm;
+    const oscs: OscillatorNode[] = [];
+    const droneOsc = ctx.createOscillator();
+    const droneGain = ctx.createGain();
+    const droneFilter = ctx.createBiquadFilter();
+    droneFilter.type = "lowpass";
+    droneFilter.frequency.value = 240;
+    droneOsc.type = "sine";
+    droneOsc.frequency.value = drone;
+    droneGain.gain.value = menu ? 0.02 : 0.016;
+    droneOsc.connect(droneFilter);
+    droneFilter.connect(droneGain);
+    droneGain.connect(out);
+    droneOsc.start();
+    oscs.push(droneOsc);
+    let next = ctx.currentTime + 0.12;
+    let timer = 0;
+    const schedule = () => {
+      if (killed || !this.ctx) return;
+      const horizon = this.ctx.currentTime + 0.45;
+      while (next < horizon) {
+        for (const n of notes) this.bedNote(n.f, n.dur, n.g, next + n.beat * beat);
+        if (!menu) {
+          this.thump(next);
+          this.thump(next + 4 * beat);
+        }
+        next += 8 * beat;
+      }
+      timer = window.setTimeout(schedule, 90);
+    };
+    schedule();
+    return () => {
+      killed = true;
+      window.clearTimeout(timer);
+      const t = ctx.currentTime;
+      droneGain.gain.cancelScheduledValues(t);
+      droneGain.gain.setValueAtTime(Math.max(0.0001, droneGain.gain.value), t);
+      droneGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+      window.setTimeout(() => {
+        for (const o of oscs) {
+          try {
+            o.stop();
+          } catch {
+            /* already stopped */
+          }
+        }
+      }, 300);
+    };
+  }
+
+  private bedNote(freq: number, dur: number, gain: number, when: number) {
+    if (!this.ctx || !this.music) return;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    const f = this.ctx.createBiquadFilter();
+    f.type = "lowpass";
+    f.frequency.value = 880;
+    o.type = "triangle";
+    o.frequency.setValueAtTime(freq, when);
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(gain, when + 0.08);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+    o.connect(f);
+    f.connect(g);
+    g.connect(this.music);
+    o.start(when);
+    o.stop(when + dur + 0.05);
+  }
+
+  private thump(when: number) {
+    if (!this.ctx || !this.music) return;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(78, when);
+    o.frequency.exponentialRampToValueAtTime(42, when + 0.16);
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(0.04, when + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.2);
     o.connect(g);
-    g.connect(this.ctx.destination);
-    o.start(t);
-    o.stop(t + dur + 0.02);
+    g.connect(this.music);
+    o.start(when);
+    o.stop(when + 0.24);
   }
-  blip() {
-    this.tone(520, 0.06, "square", 0.03);
-  }
-  year() {
-    this.tone(392, 0.12, "triangle", 0.05);
-    this.tone(523, 0.18, "triangle", 0.05, 0.09);
-  }
-  scrub() {
-    this.tone(140, 0.08, "sawtooth", 0.015);
-  }
+}
+
+type BedNote = { beat: number; f: number; dur: number; g: number };
+
+const MENU_NOTES: BedNote[] = [
+  { beat: 0, f: 146.83, dur: 1.8, g: 0.055 },
+  { beat: 0, f: 220, dur: 1.5, g: 0.022 },
+  { beat: 3, f: 174.61, dur: 1.6, g: 0.042 },
+  { beat: 5, f: 233.08, dur: 1.7, g: 0.028 },
+  { beat: 6.5, f: 130.81, dur: 2.2, g: 0.04 },
+];
+
+const YARD_NOTES: BedNote[] = [
+  { beat: 0, f: 110, dur: 0.9, g: 0.05 },
+  { beat: 0, f: 220, dur: 0.75, g: 0.03 },
+  { beat: 2, f: 164.81, dur: 0.7, g: 0.026 },
+  { beat: 3.5, f: 196, dur: 0.75, g: 0.028 },
+  { beat: 4, f: 110, dur: 0.9, g: 0.046 },
+  { beat: 5.5, f: 246.94, dur: 0.85, g: 0.022 },
+  { beat: 7, f: 174.61, dur: 1.15, g: 0.03 },
+];
+
+export function saveExists() {
+  return loadDisk() !== null;
 }
 
 export class PrisonSim {
@@ -201,6 +423,8 @@ export class PrisonSim {
     this.onHud = onHud;
     this.onLive = onLive;
     this.reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const settings = bootSettings();
+    this.sfx.setVolume(settings.volume);
     const disk = loadDisk();
     if (disk) {
       this.years = disk.years;
@@ -216,11 +440,11 @@ export class PrisonSim {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.02;
-    this.scene.background = new THREE.Color("#b7c6a4");
-    this.scene.fog = new THREE.Fog("#b7c6a4", 40, 108);
-    this.scene.add(new THREE.HemisphereLight(0xf0e6d2, 0x4e6a42, 0.82));
-    this.scene.add(new THREE.AmbientLight(0xfff6ea, 0.22));
-    const dir = new THREE.DirectionalLight(0xfff2dd, 1.2);
+    this.scene.background = new THREE.Color("#c6d7a6");
+    this.scene.fog = new THREE.Fog("#c9d6a8", 52, 128);
+    this.scene.add(new THREE.HemisphereLight(0xfff0d4, 0x5a7a38, 0.92));
+    this.scene.add(new THREE.AmbientLight(0xfff6ea, 0.28));
+    const dir = new THREE.DirectionalLight(0xffe2b0, 1.35);
     dir.position.set(16, 28, 12);
     this.scene.add(dir);
 
@@ -385,6 +609,7 @@ export class PrisonSim {
     this.disposed = true;
     this.renderer.setAnimationLoop(null);
     this.abort.abort();
+    this.sfx.stop();
     delete window.__controlsTest;
     this.scene.remove(this.blob);
     this.blob.dispose();
@@ -398,6 +623,59 @@ export class PrisonSim {
     if (this.playing) return;
     this.playing = true;
     this.sfx.ensure();
+    this.sfx.bed("yard");
+    this.emit(true);
+  }
+
+  newGame() {
+    localStorage.removeItem(SAVE_KEY);
+    this.years = 100;
+    this.authority = 0;
+    this.job = 0;
+    this.quest = "ask";
+    this.item = null;
+    this.dialogue = null;
+    this.pending = null;
+    this.using = null;
+    this.toast = null;
+    this.toastT = 0;
+    this.px = 0;
+    this.pz = 6;
+    this.yaw = 0.7;
+    this.paused = false;
+    this.playing = true;
+    this.keys.clear();
+    this.holds = { up: false, down: false, left: false, right: false };
+    this.sfx.ensure();
+    this.sfx.bed("yard");
+    this.emit(true);
+  }
+
+  toTitle() {
+    this.playing = false;
+    this.paused = false;
+    this.dialogue = null;
+    this.pending = null;
+    this.using = null;
+    this.toast = null;
+    this.toastT = 0;
+    this.keys.clear();
+    this.holds = { up: false, down: false, left: false, right: false };
+    this.sfx.ensure();
+    this.sfx.bed("menu");
+    this.emit(true);
+  }
+
+  wake() {
+    this.sfx.ensure();
+    this.sfx.bed(this.playing && !this.paused ? "yard" : "menu");
+  }
+
+  setVolume(percent: number) {
+    this.sfx.setVolume(percent);
+  }
+
+  refresh() {
     this.emit(true);
   }
 
@@ -406,6 +684,7 @@ export class PrisonSim {
     this.paused = !this.paused;
     this.keys.clear();
     this.holds = { up: false, down: false, left: false, right: false };
+    this.sfx.bed(this.paused ? "off" : "yard");
     this.emit(true);
   }
 
@@ -438,7 +717,7 @@ export class PrisonSim {
     if (!this.dialogue) return;
     if (this.dialogue.index < this.dialogue.lines.length - 1) {
       this.dialogue = { ...this.dialogue, index: this.dialogue.index + 1 };
-      this.sfx.blip();
+      this.sfx.page();
       this.emit(true);
       return;
     }
@@ -490,7 +769,7 @@ export class PrisonSim {
         if (!n) return;
         const d = Math.hypot(n.x - this.px, n.z - this.pz);
         if (d <= 1.9) this.talk(actor);
-        else this.flash("Move closer.");
+        else this.flash(tr("moveCloser"));
         return;
       }
       if (spot) {
@@ -498,7 +777,7 @@ export class PrisonSim {
         if (!p) return;
         const d = Math.hypot(p.x - this.px, p.z - this.pz);
         if (d <= 1.75 && this.spotIsActive(spot)) this.beginUse(spot);
-        else if (d > 1.75) this.flash("Move closer.");
+        else if (d > 1.75) this.flash(tr("moveCloser"));
         return;
       }
       if (look) {
@@ -506,7 +785,7 @@ export class PrisonSim {
         if (!p) return;
         const d = Math.hypot(p.x - this.px, p.z - this.pz);
         if (d <= 1.75) this.examine(look);
-        else this.flash("Move closer.");
+        else this.flash(tr("moveCloser"));
         return;
       }
     }
@@ -547,14 +826,14 @@ export class PrisonSim {
   private objectiveText() {
     const job = this.current();
     const who = NPC[job.giver]?.name ?? job.giver;
-    if (this.quest === "ask") return `Talk to ${who}.`;
+    if (this.quest === "ask") return tr("talkTo", { name: who });
     if (this.quest === "back") return job.back;
     return job.task;
   }
 
   private titleText() {
     const job = this.current();
-    const tag = job.faction === "admin" ? "Administration" : "Yard";
+    const tag = job.faction === "admin" ? tr("admin") : tr("yard");
     return `${job.title} · ${tag}`;
   }
 
@@ -623,7 +902,7 @@ export class PrisonSim {
       paused: this.paused,
       years: this.years,
       authority: this.authority,
-      zone: zoneName(this.px, this.pz),
+      zone: zoneLabel(zoneName(this.px, this.pz), getSettings().lang),
       title: this.titleText(),
       objective: this.objectiveText(),
       ledger: `${this.authority} / 100`,
@@ -690,11 +969,11 @@ export class PrisonSim {
     if (job.faction === "admin") {
       this.years = Math.max(0, this.years - 1);
       this.authority = Math.max(0, this.authority - 2);
-      this.toast = `Administration. −1 year, −2 respect. ${this.years} years left. Respect ${this.authority}.`;
+      this.toast = tr("adminToast", { years: this.years, respect: this.authority });
     } else {
       this.years += 1;
       this.authority = Math.min(100, this.authority + 2);
-      this.toast = `The yard. +1 year, +2 respect. ${this.years} years left. Respect ${this.authority}.`;
+      this.toast = tr("yardToast", { years: this.years, respect: this.authority });
     }
     this.toastT = 2.8;
     this.pulse += 1;
@@ -706,10 +985,7 @@ export class PrisonSim {
   }
 
   private commit(p: Pending | null) {
-    if (!p) {
-      this.save();
-      return;
-    }
+    if (!p) return;
     const job = this.current();
     if (p.type === "accept") {
       this.quest = "do";
@@ -728,7 +1004,6 @@ export class PrisonSim {
     this.dialogue = { id, name, role, lines, index: 0, portrait };
     this.pending = pending;
     this.using = null;
-    this.sfx.blip();
     this.emit(true);
   }
 
@@ -736,13 +1011,14 @@ export class PrisonSim {
     if (!this.playing || this.paused || this.dialogue || this.using) return;
     const prof = NPC[id];
     if (!prof) return;
+    this.sfx.talk();
     const job = this.current();
     if (this.quest === "ask" && id === job.giver) {
       this.open(id, prof.name, prof.role, job.intro, { type: "accept" });
       return;
     }
     if (this.quest === "do" && id === job.giver) {
-      this.open(id, prof.name, prof.role, ["Not yet. Finish it, then come back."], null);
+      this.open(id, prof.name, prof.role, [tr("notYet")], null);
       return;
     }
     if (this.quest === "do" && job.kind === "talk" && id === job.npc) {
@@ -766,6 +1042,7 @@ export class PrisonSim {
     const key = `look:${id}`;
     const i = this.barks[key] ?? 0;
     this.barks[key] = (i + 1) % lines.lines.length;
+    this.sfx.look();
     this.open(null, lines.name, "Around you", [lines.lines[i] ?? "Nothing new."], null);
   }
 
@@ -779,7 +1056,7 @@ export class PrisonSim {
       seconds: job.seconds ?? 2.2,
       kind: "story",
     };
-    this.sfx.scrub();
+    this.sfx.work();
     this.emit(true);
   }
 
@@ -789,6 +1066,7 @@ export class PrisonSim {
     this.using = null;
     const job = this.current();
     if (this.quest === "do" && job.kind === "spot" && job.spotId === u.id) {
+      this.sfx.look();
       this.open(null, "Work detail", "The block", [job.workLine ?? "Done. Go report it."], { type: "did" });
     }
   }
@@ -828,7 +1106,7 @@ export class PrisonSim {
       return;
     }
     if (who) this.talk(who);
-    else if (!this.lookAround()) this.flash("Nobody close enough.");
+    else if (!this.lookAround()) this.flash(tr("nobody"));
   }
 
   private lookAround() {
@@ -849,7 +1127,7 @@ export class PrisonSim {
   private kickDoor(door: CellDoor) {
     if (door.state === "closed" || door.state === "closing") {
       door.state = "opening";
-      this.sfx.blip();
+      this.sfx.door();
     } else if (door.state === "open") {
       door.hold = 2;
     }
@@ -954,6 +1232,8 @@ export class PrisonSim {
     if (!lock) this.movePlayer(vx * dt, vz * dt);
     const moved = Math.hypot(this.px - beforeX, this.pz - beforeZ);
     this.speed = dt > 0 ? moved / dt : 0;
+    if (!lock && this.speed > 1) this.sfx.foot(dt);
+    else this.sfx.foot(0);
 
     if (this.speed > 0.25) {
       const target = Math.atan2(-(this.px - beforeX), -(this.pz - beforeZ));
@@ -974,7 +1254,7 @@ export class PrisonSim {
       const p = SPOT_POS.get(this.using.id);
       if (!p || Math.hypot(p.x - this.px, p.z - this.pz) > 2.1) {
         this.using = null;
-        this.flash("You stepped off the job.");
+        this.flash(tr("stepped"));
       } else {
         this.using.t += dt;
         if (this.using.t >= this.using.seconds) this.finishUse();

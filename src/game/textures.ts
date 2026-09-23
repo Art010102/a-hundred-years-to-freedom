@@ -207,39 +207,39 @@ function irishBrick(seed: number, soot: number) {
         const i = (y * s + x) * 4;
         const joint = xx < mortar || ly < mortar;
         if (joint) {
-          const moss = n > 0.74 && row % 4 === 1;
-          const grit = (n - 0.5) * 22;
-          d[i] = moss ? 78 : clamp(168 + grit);
-          d[i + 1] = moss ? 96 : clamp(156 + grit * 0.85);
-          d[i + 2] = moss ? 62 : clamp(138 + grit * 0.7);
+          const moss = n > 0.88 && row % 6 === 2;
+          const grit = (n - 0.5) * 10;
+          d[i] = moss ? 78 : clamp(150 + grit);
+          d[i + 1] = moss ? 88 : clamp(136 + grit);
+          d[i + 2] = moss ? 62 : clamp(118 + grit);
         } else {
-          let r = 118 + h * 62;
-          let g = 36 + h * 26;
-          let b = 28 + h * 14;
-          if (h > 0.9) {
-            r = 62 + h * 20;
-            g = 28;
-            b = 24;
-          } else if (h < 0.07) {
-            r = 176;
-            g = 104;
-            b = 82;
-          } else if (h > 0.78 && h < 0.84) {
+          let r = 158 + h * 42;
+          let g = 54 + h * 24;
+          let b = 42 + h * 14;
+          if (h > 0.92) {
             r = 92;
-            g = 48;
-            b = 40;
+            g = 40;
+            b = 32;
+          } else if (h < 0.07) {
+            r = 196;
+            g = 112;
+            b = 90;
+          } else if (h > 0.8 && h < 0.86) {
+            r = 124;
+            g = 52;
+            b = 42;
           }
-          r += (n - 0.5) * 26;
-          g += (n - 0.5) * 16;
-          b += (n - 0.5) * 12;
-          const chip = xx - mortar < 5 && ly - mortar < 5 && h > 0.62;
+          r += (n - 0.5) * 12;
+          g += (n - 0.5) * 8;
+          b += (n - 0.5) * 6;
+          const chip = xx - mortar < 4 && ly - mortar < 4 && h > 0.7;
           if (chip) {
-            r = 154;
-            g = 132;
-            b = 112;
+            r = 176;
+            g = 148;
+            b = 128;
           }
-          if (n > 0.8) {
-            const k = soot * (n - 0.8) * 3.2;
+          if (n > 0.84) {
+            const k = soot * (n - 0.84) * 2.2;
             r *= 1 - k;
             g *= 1 - k * 0.85;
             b *= 1 - k * 0.7;
@@ -443,6 +443,16 @@ function mattress(mine: boolean) {
   });
 }
 
+function dirt() {
+  return canvasTex(128, (ctx, s) => {
+    fillNoise(ctx, s, (_x, _y, n) => {
+      if (n > 0.72) return shade("#6a8a3a", n, 18);
+      if (n < 0.18) return shade("#8a6840", n, 16);
+      return shade("#a88452", n, 22);
+    }, 71);
+  });
+}
+
 function grass() {
   const size = 256;
   const c = document.createElement("canvas");
@@ -450,7 +460,7 @@ function grass() {
   c.height = size;
   const ctx = c.getContext("2d");
   if (!ctx) throw new Error("no 2d");
-  ctx.fillStyle = "#3c7a34";
+  ctx.fillStyle = "#5a9a3c";
   ctx.fillRect(0, 0, size, size);
   const rnd = mulberry32(6);
   for (let i = 0; i < 1800; i++) {
@@ -881,6 +891,7 @@ export function createLibrary() {
     cell: prisonFloor(7),
     cafe: prisonFloor(19),
     yard: asphalt(),
+    dirt: dirt(),
     wall: irishBrick(5, 0.55),
     wallCell: irishBrick(11, 0.85),
     wallCafe: irishBrick(14, 0.35),
@@ -892,7 +903,7 @@ export function createLibrary() {
     mattress: mattress(false),
     mattressMine: mattress(true),
     grass: grass(),
-    leaf: leafTex("#2f6b30", 61),
+    leaf: leafTex("#8fbe45", 61),
     tile: showerTile(),
     glass: glassTex(),
     stain: stain(),
@@ -915,6 +926,7 @@ export function createLibrary() {
     cell: std(maps.cell, { roughness: 0.98 }),
     cafe: std(maps.cafe, { roughness: 0.84 }),
     yard: std(maps.yard, { roughness: 0.98 }),
+    dirt: std(maps.dirt, { roughness: 0.98 }),
     wall: std(maps.wall, { roughness: 0.94 }),
     wallCell: std(maps.wallCell, { roughness: 0.96 }),
     wallCafe: std(maps.wallCafe, { roughness: 0.9 }),

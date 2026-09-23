@@ -317,14 +317,20 @@ export function buildLevel(scene: THREE.Scene, lib: Library) {
       b.box("porcelain", xWall, 0.72, zs, 0.42, 0.14, 0.32, 0, 0, broken ? sign * 0.28 : 0);
       b.box("metal", xWall, 0.92, zs, 0.05, 0.2, 0.05);
       if (broken) b.box("stain", xWall - sign * 0.45, 0.03, zs + 0.2, 0.7, 0.02, 0.55);
-      const zb = ZS[i]! + 1.55;
-      const xb = sign * 13.15;
-      b.box("metal", xb, 0.32, zb, 1.9, 0.08, 0.78);
-      b.box("metal", xb - 0.85, 0.16, zb, 0.08, 0.32, 0.7);
-      b.box("metal", xb + 0.85, 0.16, zb, 0.08, 0.32, 0.7);
-      const bed = i === 0 && side < 0 ? "mattressMine" : "mattress";
-      b.box(bed, xb, 0.44, zb, 1.8, 0.12, 0.7);
-      colliders.push({ minX: xb - 0.95, maxX: xb + 0.95, minZ: zb - 0.4, maxZ: zb + 0.4 });
+      const zb = ZS[i]! + 1.35;
+      const bunk = (x: number, mat: "mattress" | "mattressMine") => {
+        for (const dx of [-0.82, 0.82]) {
+          for (const dz of [-0.32, 0.32]) b.box("metal", x + dx, 0.78, zb + dz, 0.055, 1.56, 0.055);
+        }
+        b.box("metal", x, 0.34, zb, 1.78, 0.06, 0.7);
+        b.box(mat, x, 0.44, zb, 1.68, 0.1, 0.62);
+        b.box("metal", x, 1.12, zb, 1.78, 0.06, 0.7);
+        b.box("mattress", x, 1.22, zb, 1.68, 0.1, 0.62);
+        b.box("metal", x + 0.92, 0.72, zb, 0.04, 1.15, 0.04);
+        colliders.push({ minX: x - 0.95, maxX: x + 0.95, minZ: zb - 0.4, maxZ: zb + 0.4 });
+      };
+      bunk(sign * 14.55, i === 0 && side < 0 ? "mattressMine" : "mattress");
+      bunk(sign * 11.2, "mattress");
       b.box("glass", sign * 17.72, 1.65, ZS[i]! + 1.1, 0.08, 0.7, 0.9);
       b.box("rust", sign * 17.6, 1.65, ZS[i]! + 0.85, 0.05, 0.7, 0.05);
       b.box("rust", sign * 17.6, 1.65, ZS[i]! + 1.35, 0.05, 0.7, 0.05);
@@ -382,18 +388,33 @@ export function buildLevel(scene: THREE.Scene, lib: Library) {
   wallX(18.3, 40, 12, "wallCafe");
   wallX(18.3, 40, 28, "wallCafe");
   b.floor("cafe", 18.6, 12.3, 39.7, 27.7, 0.012, 6.4);
-  b.box("metal", 32, 0.7, 25.7, 10, 1.15, 1.35);
-  b.cyl("rust", 29.2, 1.2, 25.7, 0.38, 0.28, 0.38);
-  b.cyl("rust", 34.5, 1.15, 25.7, 0.32, 0.22, 0.32);
-  colliders.push({ minX: 26.8, maxX: 37.2, minZ: 24.9, maxZ: 26.5 });
-  for (const [x, z] of [
-    [24, 15.15],
-    [33, 15.15],
-  ] as const) {
-    b.cyl("wood", x, 0.58, z, 0.78, 0.1, 0.78);
-    b.cyl("metal", x, 0.28, z, 0.08, 0.5, 0.08);
-    b.box("wood", x, 0.4, z + 0.95, 1.3, 0.08, 0.35);
-    colliders.push({ minX: x - 0.8, maxX: x + 0.8, minZ: z - 0.8, maxZ: z + 0.8 });
+  b.box("metal", 32, 0.78, 25.85, 9.2, 1.05, 1.15);
+  b.box("metal", 32, 1.55, 26.35, 8.2, 0.08, 0.32);
+  b.cyl("rust", 28.2, 1.38, 25.75, 0.34, 0.32, 0.34);
+  b.cyl("rust", 30.1, 1.42, 25.75, 0.26, 0.38, 0.26);
+  b.cyl("metal", 31.6, 1.32, 25.7, 0.18, 0.22, 0.18);
+  b.cyl("rust", 33.4, 1.36, 25.75, 0.3, 0.26, 0.3);
+  b.box("porcelain", 35.2, 1.4, 25.7, 0.55, 0.14, 0.38);
+  b.box("wood", 29.4, 1.72, 26.32, 0.42, 0.22, 0.26);
+  b.box("wood", 31.1, 1.7, 26.32, 0.34, 0.16, 0.24);
+  b.box("metal", 36.6, 1.28, 25.6, 0.7, 0.18, 0.42);
+  b.box("metal", 38.35, 0.72, 20.2, 0.7, 1.15, 3.4);
+  b.cyl("rust", 38.3, 1.4, 19.2, 0.2, 0.28, 0.2);
+  b.cyl("metal", 38.3, 1.36, 21.1, 0.16, 0.2, 0.16);
+  colliders.push({ minX: 27.2, maxX: 37.4, minZ: 25.15, maxZ: 26.55 });
+  colliders.push({ minX: 37.9, maxX: 38.8, minZ: 18.4, maxZ: 22 });
+  const messTable = (x: number, z: number) => {
+    b.box("wood", x, 0.72, z, 2.05, 0.08, 0.72);
+    for (const dx of [-0.82, 0.82]) {
+      for (const dz of [-0.26, 0.26]) b.box("metal", x + dx, 0.34, z + dz, 0.055, 0.68, 0.055);
+    }
+    b.box("wood", x, 0.42, z - 0.58, 1.85, 0.06, 0.26);
+    b.box("wood", x, 0.42, z + 0.58, 1.85, 0.06, 0.26);
+    b.box("metal", x + 0.4, 0.8, z, 0.34, 0.035, 0.22);
+    colliders.push({ minX: x - 1.08, maxX: x + 1.08, minZ: z - 0.82, maxZ: z + 0.82 });
+  };
+  for (const x of [21.4, 26.4, 31.6, 36.8]) {
+    for (const z of [14.15, 18.55, 22.55]) messTable(x, z);
   }
   b.box("metal", 22.2, 0.45, 13.4, 0.7, 0.7, 0.5);
   b.box("glass", 39.55, 1.6, 20, 0.08, 0.8, 1.4);
@@ -403,7 +424,11 @@ export function buildLevel(scene: THREE.Scene, lib: Library) {
   wallZ(30, 54, 18);
   wallX(-18, 18, 54);
   for (const [a, c] of parts(-18, 18, [[-5.15, 5.15]])) wallX(a, c, 30);
-  b.floor("yard", -17.7, 30.25, 17.7, 53.7, 0.01, 7.2);
+  b.floor("grass", -17.7, 30.25, 17.7, 53.7, 0.01, 4.2);
+  b.floor("dirt", -12.4, 33.4, 12.4, 35.1, 0.02, 3);
+  b.floor("dirt", -12.4, 49.2, 12.4, 50.9, 0.02, 3);
+  b.floor("dirt", -13.2, 33.4, -11.2, 50.9, 0.02, 3);
+  b.floor("dirt", 11.2, 33.4, 13.2, 50.9, 0.02, 3);
   // planter
   b.box("wood", 0, 0.28, 43, 6.4, 0.5, 5.4);
   b.box("grass", 0, 0.58, 43, 6, 0.22, 5);
@@ -493,12 +518,14 @@ export function buildLevel(scene: THREE.Scene, lib: Library) {
   colliders.push({ minX: -6.95, maxX: -6.25, minZ: -10.68, maxZ: -10.12 });
 
   const tree = (x: number, z: number, s: number) => {
-    const h = 2.55 * s;
-    b.cyl("wood", x, h * 0.4, z, 0.13 * s, h * 0.8, 0.13 * s);
-    b.sphere("leaf", x, h * 0.92, z, 0.82 * s);
-    b.sphere("leaf", x + 0.38 * s, h * 1.12, z + 0.12 * s, 0.58 * s);
-    b.sphere("leaf", x - 0.3 * s, h * 0.74, z - 0.18 * s, 0.5 * s);
-    colliders.push({ minX: x - 0.26, maxX: x + 0.26, minZ: z - 0.26, maxZ: z + 0.26 });
+    const h = 3.05 * s;
+    b.cyl("wood", x, h * 0.36, z, 0.15 * s, h * 0.72, 0.15 * s);
+    b.sphere("leaf", x, h * 0.98, z, 1.12 * s);
+    b.sphere("leaf", x + 0.62 * s, h * 0.84, z + 0.18 * s, 0.74 * s);
+    b.sphere("leaf", x - 0.55 * s, h * 0.8, z - 0.22 * s, 0.7 * s);
+    b.sphere("leaf", x + 0.08 * s, h * 1.28, z - 0.08 * s, 0.62 * s);
+    b.sphere("leaf", x - 0.18 * s, h * 0.68, z + 0.48 * s, 0.52 * s);
+    colliders.push({ minX: x - 0.28, maxX: x + 0.28, minZ: z - 0.28, maxZ: z + 0.28 });
   };
   tree(7.15, 47.35, 1.05);
   tree(-6.7, 38.55, 0.98);
@@ -588,6 +615,30 @@ export function buildLevel(scene: THREE.Scene, lib: Library) {
   razorZ(12, 28, 40);
   razorZ(16, 24, -14);
   razorZ(24, 30, -18);
+
+  const tower = (x: number, z: number) => {
+    for (const dx of [-0.72, 0.72]) {
+      for (const dz of [-0.72, 0.72]) b.box("wood", x + dx, 1.85, z + dz, 0.16, 3.7, 0.16);
+    }
+    b.box("wood", x, 3.45, z, 2.05, 0.12, 2.05);
+    b.box("wood", x, 3.95, z - 0.9, 1.8, 0.08, 0.08);
+    b.box("wood", x, 3.95, z + 0.9, 1.8, 0.08, 0.08);
+    b.box("wood", x - 0.9, 3.95, z, 0.08, 0.08, 1.8);
+    b.box("wood", x + 0.9, 3.95, z, 0.08, 0.08, 1.8);
+    b.box("rust", x, 4.45, z, 2.45, 0.08, 2.45);
+    b.box("metal", x, 4.15, z, 0.08, 0.7, 0.08);
+  };
+  tower(-20.4, -16.3);
+  tower(20.4, -16.3);
+  tower(-20.4, 56.4);
+  tower(20.4, 56.4);
+  tower(42.3, 10.2);
+  tower(42.3, 30.2);
+
+  b.box("metal", 16.55, 1.55, 46.4, 0.08, 3.1, 0.08);
+  b.box("metal", 16.55, 2.85, 45.7, 0.06, 0.06, 1.35);
+  b.torus("rust", 16.55, 2.45, 45.15, 0.34, 0);
+  b.box("wood", 16.2, 2.15, 45.35, 0.04, 0.7, 0.55);
 
   b.finish(scene, owned);
   return { colliders, owned, decal: g };
