@@ -119,11 +119,11 @@ export function PrisonApp() {
         </div>
       ) : null}
 
-      <div className="menu-face pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-2 p-3 pt-4">
+      <div className="menu-face pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-1 px-3 pt-2">
         <div className="flex items-start justify-between gap-3">
           <div className="pointer-events-auto prison-steel px-4 py-2">
             <p className="text-xs font-medium tracking-widest text-amber uppercase">{ui("yearsLeft")}</p>
-            <p key={hud.pulse} className="year-pop font-display text-5xl leading-none text-cream">
+            <p key={hud.pulse} className="hud-years year-pop font-display leading-none text-cream">
               {hud.years}
             </p>
           </div>
@@ -147,19 +147,19 @@ export function PrisonApp() {
         </div>
 
         {hud.mode === "play" && !dialogue ? (
-          <div className="pointer-events-none prison-steel flex items-stretch gap-2 p-3">
+          <div className="quest-card pointer-events-none flex items-center gap-2">
             <div
               ref={arrowRef}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink text-amber"
+              className="quest-arrow flex shrink-0 items-center justify-center rounded-full bg-ink text-amber"
             >
-              <ChevronUp className="h-6 w-6" />
+              <ChevronUp className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-2">
-                <p className="truncate text-xs font-medium tracking-widest text-rust uppercase">{hud.title}</p>
-                <span ref={distRef} className="shrink-0 text-xs text-muted" />
+                <p className="quest-title truncate font-medium tracking-widest text-rust uppercase">{hud.title}</p>
+                <span ref={distRef} className="quest-title shrink-0 text-muted" />
               </div>
-              <p className="text-base leading-snug text-cream">{hud.objective}</p>
+              <p className="quest-body text-cream">{hud.objective}</p>
               {hud.usingLabel ? (
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-ink">
                   <div ref={barRef} className="h-full w-0 bg-rust" />
