@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type ReactNode, type RefObject } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Pause } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
+import { ChevronUp, Pause } from "lucide-react";
 import { PrisonSim, saveExists, type Hud, type Live } from "./sim";
 import { nearLabel, t, verbLabel, type UiKey } from "./i18n";
 import { LANGS, bootSettings, saveSettings, type Lang, type Settings } from "./settings";
@@ -21,21 +21,6 @@ const INITIAL: Hud = {
   toast: null,
   pulse: 0,
 };
-
-function holdProps(sim: RefObject<PrisonSim | null>, dir: "up" | "down" | "left" | "right") {
-  return {
-    onPointerDown: (e: PointerEvent<HTMLButtonElement>) => {
-      e.preventDefault();
-      e.currentTarget.setPointerCapture(e.pointerId);
-      sim.current?.setHold(dir, true);
-    },
-    onPointerUp: (e: PointerEvent<HTMLButtonElement>) => {
-      sim.current?.setHold(dir, false);
-      if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
-    },
-    onPointerCancel: () => sim.current?.setHold(dir, false),
-  };
-}
 
 const LANG_NAMES: Record<Lang, string> = {
   en: "English",
@@ -220,24 +205,8 @@ export function PrisonApp() {
 
       {hud.mode === "play" && !dialogue && !hud.paused ? (
         <>
-          <div className="pad-dock pointer-events-auto absolute z-10 grid grid-cols-3 gap-1">
-            <span />
-            <Pad sim={simRef} dir="up" label="Forward">
-              <ChevronUp className="h-7 w-7" />
-            </Pad>
-            <span />
-            <Pad sim={simRef} dir="left" label="Left">
-              <ChevronLeft className="h-7 w-7" />
-            </Pad>
-            <span />
-            <Pad sim={simRef} dir="right" label="Right">
-              <ChevronRight className="h-7 w-7" />
-            </Pad>
-            <span />
-            <Pad sim={simRef} dir="down" label="Back">
-              <ChevronDown className="h-7 w-7" />
-            </Pad>
-            <span />
+          <div className="pad-dock pointer-events-auto absolute z-10">
+            <Stick sim={simRef} />
           </div>
           <div className="act-dock pointer-events-auto absolute z-10 flex flex-col items-center gap-1">
             {nearLabel(hud.near, lang) ? (
@@ -380,25 +349,61 @@ export function PrisonApp() {
   );
 }
 
-function Pad({
-  sim,
-  dir,
-  label,
-  children,
-}: {
-  sim: RefObject<PrisonSim | null>;
-  dir: "up" | "down" | "left" | "right";
-  label: string;
-  children: ReactNode;
-}) {
+function Stick({ sim }: { sim: RefObject<PrisonSim | null> }) {
+  const base = useRef<HTMLDivElement>(null);
+  const [knob, setKnob] = useState({ x: 0, y: 0, live: false });
+
+  function fromEvent(e: PointerEvent<HTMLDivElement>) {
+    const el = base.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    let dx = e.clientX - cx;
+    let dy = e.clientY - cy;
+    const limit = r.width * 0.34;
+    const dist = Math.hypot(dx, dy);
+    if (dist > limit) {
+      dx = (dx / dist) * limit;
+      dy = (dy / dist) * limit;
+    }
+    setKnob({ x: dx, y: dy, live: true });
+    const nx = dx / limit;
+    const ny = -dy / limit;
+    if (Math.hypot(nx, ny) < 0.16) sim.current?.setStick(0, 0);
+    else sim.current?.setStick(nx, ny);
+  }
+
+  function release(e: PointerEvent<HTMLDivElement>) {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+    setKnob({ x: 0, y: 0, live: false });
+    sim.current?.setStick(0, 0);
+  }
+
   return (
-    <button
-      type="button"
-      aria-label={label}
-      className="prison-steel flex h-14 w-14 items-center justify-center text-cream"
-      {...holdProps(sim, dir)}
+    <div
+      ref={base}
+      className="stick"
+      role="slider"
+      aria-label="Move"
+      aria-valuetext="joystick"
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        fromEvent(e);
+      }}
+      onPointerMove={(e) => {
+        if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+        fromEvent(e);
+      }}
+      onPointerUp={release}
+      onPointerCancel={release}
     >
-      {children}
-    </button>
+      <span className="stick-ring" />
+      <span
+        className={knob.live ? "stick-knob" : "stick-knob stick-knob-back"}
+        style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }}
+      />
+    </div>
   );
 }

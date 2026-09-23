@@ -405,6 +405,8 @@ export class PrisonSim {
   private keys = new Set<string>();
   private qa = new Set<string>();
   private holds = { up: false, down: false, left: false, right: false };
+  private stickX = 0;
+  private stickY = 0;
   private act = false;
   private shake = 0;
   private reduce: boolean;
@@ -646,6 +648,8 @@ export class PrisonSim {
     this.playing = true;
     this.keys.clear();
     this.holds = { up: false, down: false, left: false, right: false };
+    this.stickX = 0;
+    this.stickY = 0;
     this.sfx.ensure();
     this.sfx.bed("yard");
     this.emit(true);
@@ -661,6 +665,8 @@ export class PrisonSim {
     this.toastT = 0;
     this.keys.clear();
     this.holds = { up: false, down: false, left: false, right: false };
+    this.stickX = 0;
+    this.stickY = 0;
     this.sfx.ensure();
     this.sfx.bed("menu");
     this.emit(true);
@@ -684,6 +690,8 @@ export class PrisonSim {
     this.paused = !this.paused;
     this.keys.clear();
     this.holds = { up: false, down: false, left: false, right: false };
+    this.stickX = 0;
+    this.stickY = 0;
     this.sfx.bed(this.paused ? "off" : "yard");
     this.emit(true);
   }
@@ -702,6 +710,16 @@ export class PrisonSim {
 
   setHold(dir: "up" | "down" | "left" | "right", on: boolean) {
     this.holds[dir] = on;
+  }
+
+  setStick(x: number, y: number) {
+    const len = Math.hypot(x, y);
+    if (len > 1) {
+      x /= len;
+      y /= len;
+    }
+    this.stickX = x;
+    this.stickY = y;
   }
 
   queueAct() {
@@ -1220,8 +1238,12 @@ export class PrisonSim {
       if (this.holds.up || this.held("KeyW") || this.held("ArrowUp")) iz += 1;
       if (this.holds.down || this.held("KeyS") || this.held("ArrowDown")) iz -= 1;
     }
+    if (this.stickX !== 0 || this.stickY !== 0) {
+      ix = this.stickX;
+      iz = this.stickY;
+    }
     const len = Math.hypot(ix, iz);
-    if (len > 0) {
+    if (len > 1) {
       ix /= len;
       iz /= len;
     }
