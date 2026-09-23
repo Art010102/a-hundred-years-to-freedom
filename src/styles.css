@@ -106,22 +106,47 @@
   height: 8.75rem;
   touch-action: none;
   border-radius: 999px;
-  background:
-    radial-gradient(circle at 50% 42%, rgba(255, 244, 220, 0.08), transparent 46%),
-    radial-gradient(circle at 50% 58%, rgba(0, 0, 0, 0.35), transparent 62%),
-    #2a241c;
-  border: 3px solid #1a140f;
+  background-color: #2c333a;
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(8, 10, 12, 0.05) 0 34%, rgba(0, 0, 0, 0.62) 58%, rgba(0, 0, 0, 0.2) 72%),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.22) 0 2px, transparent 2px 11px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 2px, transparent 2px 11px),
+    linear-gradient(160deg, rgba(198, 90, 46, 0.28), transparent 42%),
+    url("/ui-steel.jpg");
+  background-size: cover, 100% 100%, 100% 100%, cover, 220px;
+  border: 3px solid #101418;
   box-shadow:
-    inset 0 0 0 7px rgba(90, 62, 42, 0.55),
-    inset 0 -10px 18px rgba(0, 0, 0, 0.45),
-    0 8px 0 #120e0b;
+    inset 0 0 0 6px rgba(14, 16, 18, 0.92),
+    inset 0 0 0 8px rgba(154, 72, 40, 0.55),
+    inset 0 8px 12px rgba(255, 255, 255, 0.08),
+    inset 0 -16px 18px rgba(0, 0, 0, 0.55),
+    0 8px 0 #0a0c0e;
+}
+
+.stick::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 7%, #c5ced6 0 3px, #3a2a22 3px 5px, transparent 6px),
+    radial-gradient(circle at 93% 50%, #c5ced6 0 3px, #3a2a22 3px 5px, transparent 6px),
+    radial-gradient(circle at 50% 93%, #c5ced6 0 3px, #3a2a22 3px 5px, transparent 6px),
+    radial-gradient(circle at 7% 50%, #c5ced6 0 3px, #3a2a22 3px 5px, transparent 6px);
 }
 
 .stick-ring {
   position: absolute;
   inset: 18%;
   border-radius: 999px;
-  border: 2px dashed rgba(243, 234, 220, 0.22);
+  border: 2px solid rgba(198, 90, 46, 0.7);
+  box-shadow:
+    inset 0 0 0 10px rgba(0, 0, 0, 0.28),
+    0 0 0 1px rgba(20, 24, 28, 0.8);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 7px, rgba(12, 14, 16, 0.45) 7px 9px),
+    repeating-linear-gradient(0deg, transparent 0 7px, rgba(12, 14, 16, 0.45) 7px 9px);
   pointer-events: none;
 }
 
@@ -134,12 +159,18 @@
   margin-left: -1.675rem;
   margin-top: -1.675rem;
   border-radius: 999px;
-  background:
-    radial-gradient(circle at 38% 32%, #f3eadc, #c4a574 42%, #6e4b32 78%);
-  border: 3px solid #1a140f;
+  background-color: #3a424a;
+  background-image:
+    radial-gradient(circle at 36% 30%, rgba(255, 255, 255, 0.42), transparent 26%),
+    radial-gradient(circle at 62% 70%, rgba(198, 90, 46, 0.55), transparent 46%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.45)),
+    url("/ui-steel.jpg");
+  background-size: cover;
+  border: 3px solid #101418;
   box-shadow:
-    inset 0 -6px 8px rgba(0, 0, 0, 0.35),
-    0 4px 0 #3d2418;
+    inset 0 0 0 3px rgba(154, 72, 40, 0.75),
+    inset 0 -8px 10px rgba(0, 0, 0, 0.55),
+    0 4px 0 #1a100c;
   pointer-events: none;
 }
 
