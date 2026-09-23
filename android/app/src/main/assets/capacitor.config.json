@@ -1,0 +1,8 @@
+{
+	"appId": "com.hundredyears.freedom",
+	"appName": "A Hundred Years to Freedom",
+	"webDir": "www",
+	"android": {
+		"allowMixedContent": false
+	}
+}

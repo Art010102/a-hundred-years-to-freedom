@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #1c1915;
+  --color-panel: #2a241c;
+  --color-cream: #f3eadc;
+  --color-muted: #b7aa98;
+  --color-rust: #c65a2e;
+  --color-amber: #e6b15a;
+  --color-line: #4a4034;
+  --font-display: "Fraunces", "Times New Roman", serif;
+  --font-sans: "Outfit", "Verdana", sans-serif;
+  --radius-hud: 1rem;
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+    background: var(--color-ink);
+    color: var(--color-cream);
+    font-family: var(--font-sans);
+    overscroll-behavior: none;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  #root,
+  body,
+  html {
+    margin: 0;
+  }
+}
+
+@keyframes ledger-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+@keyframes toast-in {
+  from { transform: translateY(-0.4rem); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.year-pop {
+  animation: ledger-pop 0.45s ease;
+}
+
+.toast-in {
+  animation: toast-in 0.2s ease;
+}
+
+.title-screen {
+  background:
+    linear-gradient(180deg, rgba(18, 14, 10, 0.15), rgba(18, 14, 10, 0.55)),
+    url("/menu-bg.jpg") center / cover no-repeat;
+}
+
+.prison-paper {
+  background-color: #ead9b8;
+  background-image:
+    linear-gradient(180deg, rgba(244, 232, 208, 0.84), rgba(226, 206, 170, 0.9)),
+    url("/ui-paper.jpg");
+  background-size: cover;
+  color: #1c1612;
+  border: 3px solid #5c4030;
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(255, 244, 220, 0.45);
+}
+
+.prison-steel {
+  background-color: #2a3138;
+  background-image:
+    linear-gradient(180deg, rgba(32, 38, 44, 0.55), rgba(12, 14, 16, 0.72)),
+    url("/ui-steel.jpg");
+  background-size: cover;
+  color: #f3eadc;
+  border: 2px solid #14181c;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.prison-btn {
+  background-color: #3c444c;
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(0, 0, 0, 0.35)),
+    url("/ui-steel.jpg");
+  background-size: cover;
+  color: #f4ecdf;
+  border: 2px solid #161b20;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.stencil {
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #6e3424;
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .year-pop,
+  .toast-in {
+    animation: none;
+  }
+}
